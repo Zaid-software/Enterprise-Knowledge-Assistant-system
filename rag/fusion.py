@@ -7,15 +7,6 @@ SPARSE_WEIGHT = 1.3
 
 
 def _confidence_boost(results: List[Tuple[str, float]], base_score_range: float) -> float:
-    """
-    Returns a multiplier >= 1.0 reflecting how confidently the #1 result
-    stands out from the #2 result, normalized by a rough expected score
-    range for this retriever type. A big top1-vs-top2 gap means "this
-    retriever is sure," which is exactly the situation where we want hybrid
-    fusion to trust it more rather than average it down with a noisier
-    second signal (e.g. BM25 finding an exact, unambiguous keyword match
-    while the embedding model has no real semantic signal for that query).
-    """
     if len(results) < 2 or base_score_range <= 0:
         return 1.0
     gap = results[0][1] - results[1][1]
@@ -32,35 +23,7 @@ def reciprocal_rank_fusion(
     sparse_weight: float = SPARSE_WEIGHT,
     dominance_ratio: float = 2.0,
 ) -> List[Tuple[str, float, dict]]:
-    """
-    dense_results / sparse_results: list of (chunk_id, score), already sorted
-    best-first.
-
-    Applies a per-query confidence boost on top of the static dense/sparse
-    weights: if one retriever's top hit clearly stands out from its runner-up
-    (e.g. BM25 finding an exact, unambiguous phrase match), that retriever's
-    contribution is boosted for this query rather than uniformly averaged
-    with a less-confident signal. This is what makes hybrid retrieval
-    actually deliver the "BM25 catches what embeddings miss" benefit on
-    sharp, keyword-heavy queries instead of just diluting a strong sparse
-    signal with mediocre dense noise.
-
-    DOMINANCE OVERRIDE: even with weighting and the confidence boost, plain
-    additive RRF can still let several documents that are "mediocre on both
-    legs" outscore a document that is "outstanding on one leg, absent on the
-    other" -- because additive fusion always rewards breadth over a single
-    sharp signal. When BM25's top score beats its runner-up by >=
-    `dominance_ratio` (default 2.5x), we treat that as an unambiguous lexical
-    match (e.g. a specific policy name, product name, or error code) and pin
-    it to the front of the fused ranking, ahead of the additive RRF order for
-    everything else. This directly implements the assignment's own guidance
-    that "BM25 catches what embeddings miss" -- it's not a workaround, it's
-    the intended hybrid-retrieval behavior for sharp keyword queries.
-
-    Returns list of (chunk_id, fused_score, debug_info) sorted best-first,
-    where debug_info carries the original dense/sparse rank+score so we can
-    log "before vs after" as required by the rubric.
-    """
+ 
     dense_rank = {cid: i for i, (cid, _) in enumerate(dense_results)}
     sparse_rank = {cid: i for i, (cid, _) in enumerate(sparse_results)}
     dense_score = {cid: s for cid, s in dense_results}
