@@ -1,0 +1,16 @@
+pydantic>=2.0
+requests>=2.28
+python-dotenv>=1.0
+numpy>=1.24
+scipy>=1.10
+
+# RAG stack (real implementations; system falls back to built-in
+# dependency-free equivalents automatically if these are not installed --
+# see rag/embeddings.py, rag/vector_store.py, rag/sparse_retrieval.py)
+faiss-cpu>=1.7
+rank_bm25>=0.2.2
+sentence-transformers>=2.2
+
+# Optional, only needed if you want to pull a real HotpotQA/NQ subset via
+# corpus/load_real_dataset.py instead of the bundled synthetic corpus
+# datasets>=2.14
